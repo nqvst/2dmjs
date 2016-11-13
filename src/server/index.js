@@ -20,10 +20,10 @@ app.use(bodyParser.json({
     limit : config.bodyLimit
 }));
 
-app.use(express.static('src/public'));
+app.use(express.static('src/client'));
 
 app.get('/', function(req, res){
-    res.sendFile(__dirname + '/public/index.html');
+    res.sendFile(__dirname + '/client/index.html');
 });
 
 function onPlayerJoined(socket, data) {
@@ -52,13 +52,19 @@ let players = [];
 io.on('connection', (socket) => {
 
     console.log('a user connected', socket.id);
-    
+    players.push({ 
+        id: socket.id
+    });
+
     players.forEach(p => {
         console.log('players.forEach', p);
-        socket.emit('message', {
-            type: 'join',
-            p,
-        });
+
+        if(socket.id !== p.id ) {
+            socket.emit('message', {
+                type: 'join',
+                data: p,
+            });
+        }
     });
 
     socket.on('message', (msg) => {
@@ -76,8 +82,9 @@ io.on('connection', (socket) => {
         }
     });  
 
-    socket.on('disconnect', () => {
-        players = players.filter(p => p.id !== data.id);
+    socket.on('disconnect', (evt) => {
+        console.log('user disconnected', evt);
+        players = players.filter(p => p.id !== socket.id);
         console.log('user disconnected');
         onPlayerLeft(socket, { id: socket.id });
     });
